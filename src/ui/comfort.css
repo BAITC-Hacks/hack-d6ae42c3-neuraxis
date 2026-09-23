@@ -1,0 +1,104 @@
+:root { --green: #154d36; font-size: 16px; font-weight: 600; color: #20362b; }
+.primary { background: #154d36; border-color: #154d36; color: #fff; }
+.primary:hover:not(:disabled) { background: #103d2a; }
+.brand-icon,.budget-track span,.decision-progress .done,.selected .project-check { background: #154d36; }
+.nav-item.active { color: #154d36; background: #e7ede7; }
+.dimension-tabs button.active { color: #154d36; border-bottom-color: #154d36; }
+.selected.project-card { border-color: #154d36; box-shadow: 0 0 0 1px #154d36; }
+.delta,.impacts>span,.metric small,.selected .project-bottom>span { color: #1a5137; }
+.page-heading h1 { font-size: 38px; }
+.page-heading h1 span { color: #516655; }
+.page-heading p,.project-card p,.city-hero-copy p,.account-description { font-size: 16px; line-height: 1.75; }
+.panel-heading h2,.planning-heading h2 { font-size: 24px; }
+.button { font-size: 15px; padding: 13px 18px; }
+.project-card h3 { font-size: 20px; }
+.project-bottom strong { font-size: 22px; }
+.project-bottom { align-items: flex-start; flex-wrap: wrap; }
+.project-bottom>span,.project-tag,.location,.impacts small { font-size: 14px; }
+.summary-label,.summary-foot { font-size: 14px; }
+.summary-value { font-size: 40px; }
+.summary-value>span { font-size: 17px; }
+.summary-value .delta { font-size: 15px; }
+.summary-foot { flex-wrap: wrap; line-height: 1.5; }
+.summary-card { min-height: 180px; }
+.dimension-tabs { display: flex; overflow-x: auto; }
+.dimension-tabs button { flex: 1 0 auto; font-size: 15px; padding: 16px 12px; }
+.dimension-tabs small { display: none; }
+.metric>div:first-child,.metric b { font-size: 15px; }
+.metric small { font-size: 13px; }
+.metric { margin-bottom: 20px; }
+.district-tabs button { font-size: 14px; }
+.district-note { display: none; }
+.district-panel { padding-bottom: 10px; }
+.header-account { position: relative; z-index: 2; min-height: 44px; flex-shrink: 0; }
+.header-account b { font-size: 14px; }
+.header-account small { display: none; }
+.header-account-copy { max-width: 200px; }
+.header-right { margin-left: 14px; }
+.header-account .avatar { font-size: 16px; width: 34px; height: 34px; }
+.topbar { z-index: 25; }
+.hero-photo:after { display: none; }
+.city-hero h2 { font-size: clamp(32px,3vw,46px); }
+.city-hero h2 em { color: #295c3d; }
+.hero-kicker { display: none; }
+.hero-caption { font-size: 14px; color: #45603e; }
+.city-hero-copy .button { font-size: 15px; }
+.analysis-banner { background: #e6ece3; padding: 26px; }
+.analysis-banner h3 { font-size: 21px; }
+.analysis-banner p { font-size: 15px; line-height: 1.7; color: #4c6444; }
+.analysis-banner .button { min-width: 205px; min-height: 52px; }
+.account-simple { display: block; max-width: 620px; margin: 0 auto 40px; }
+.main-shell:has(.account-simple) .page-heading p,.main-shell:has(.account-simple) .page-heading .reset { display: none; }
+.account-simple .panel-heading { padding: 28px 30px 18px; }
+.account-simple .account-body { padding: 0 30px 30px; }
+.account-simple label { font-size: 16px; margin-bottom: 22px; }
+.account-simple input { font-size: 17px; padding: 15px; }
+.account-simple input[readonly] { color: #6d766c; background: #f4f5f2; }
+.account-simple input[aria-invalid=true] { border-color: #b44537; }
+.account-simple .auth-tabs button,.account-simple form>.button { font-size: 16px; }
+.field-error { color: #a13328; font-size: 14px; margin: -10px 0 20px; line-height: 1.5; }
+.legacy-login { display: block; margin: 20px auto 0; padding: 8px; border: 0; background: transparent; color: #455e40; text-decoration: underline; font-size: 14px; }
+.account-shortcuts { display: grid; gap: 15px; margin-top: 22px; }
+.account-shortcuts .logout { margin-top: 0; }
+.draft-details { border-block: 1px solid #e2e7dd; padding: 18px 0; font-size: 16px; }
+.draft-details summary { cursor: pointer; }
+.draft-details p { margin: 16px 0; font-size: 15px; color: #63735a; }
+.draft-details .button { margin: 0 8px 8px 0; white-space: normal; }
+.feedback-dialog { border: 1px solid #dce4d8; border-radius: 18px; padding: 0; width: min(520px,calc(100vw - 32px)); max-height: 85dvh; color: #20362b; background: white; box-shadow: 0 24px 90px #132d2540; }
+.feedback-dialog::backdrop { background: #12251e70; backdrop-filter: blur(5px); }
+.feedback-content { padding: 32px; }
+.feedback-content h2 { font-size: 26px; line-height: 1.3; margin-bottom: 18px; }
+.feedback-body { font-size: 17px; line-height: 1.75; color: #506149; }
+.feedback-body p+p { margin-top: 12px; }
+.feedback-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 26px; }
+@media(max-width:1100px) { .city-grid { grid-template-columns: 1fr; } .map-stage { height: 350px; } .summary-grid { gap: 10px; } .summary-card { padding: 18px 14px; } .summary-value { font-size: 32px; } .summary-value>span { font-size: 14px; } .breadcrumb { font-size: 12px; } .analysis-banner { flex-wrap: wrap; } }
+@media(max-width:700px) {
+  .sidebar { z-index: 30; }
+  .topbar { height: 65px; }
+  .header-account-copy { max-width: 140px; }
+  .header-account b { font-size: 13px; }
+  .breadcrumb>b { font-size: 13px; }
+  .page-heading h1 { font-size: 29px; max-width: none; }
+  .page-heading p { font-size: 15px; }
+  .page-heading .reset { font-size: 0; padding: 10px; }
+  .summary-grid { grid-template-columns: 1fr; }
+  .summary-card { min-height: 155px; }
+  .summary-card:last-child { display: block; }
+  .summary-card:last-child .summary-value { justify-content: flex-start; font-size: 32px; margin: 10px 0; }
+  .summary-value { font-size: 36px; }
+  .summary-value>span { font-size: 16px; }
+  .city-hero h2 { font-size: 36px; }
+  .hero-photo { min-height: 260px; }
+  .city-hero-copy p { font-size: 16px; }
+  .project-card h3 { font-size: 21px; }
+  .planning-heading h2 { font-size: 24px; }
+  .planning-heading p { font-size: 15px; }
+  .dimension-tabs button { font-size: 15px; }
+  .analysis-banner h3 { font-size: 20px; }
+  .analysis-banner p { font-size: 15px; }
+  .account-simple .account-body { padding: 0 20px 24px; }
+  .account-simple .panel-heading { padding: 23px 20px 18px; }
+  .feedback-content { padding: 25px; }
+  .feedback-actions { flex-wrap: wrap; }
+  #development-plan { scroll-margin-top: 145px; }
+}

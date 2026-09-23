@@ -5,10 +5,18 @@ import { once } from 'node:events';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
+import { scryptSync } from 'node:crypto';
 
 test('Accounts, ownership, drafts and runs persist through server restart', async () => {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'qala-api-'));
   const database = path.join(temp, 'test.sqlite');
+  const legacyDb = new DatabaseSync(database);
+  legacyDb.exec(`CREATE TABLE profiles (id TEXT PRIMARY KEY, nickname TEXT NOT NULL, team TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+    CREATE TABLE accounts (profile_id TEXT PRIMARY KEY REFERENCES profiles(id), login TEXT NOT NULL UNIQUE, salt TEXT NOT NULL, password_hash TEXT NOT NULL);`);
+  legacyDb.prepare('INSERT INTO profiles VALUES (?, ?, ?, ?, ?)').run('00000000-0000-4000-8000-000000000001', 'Прежний пользователь', '', new Date().toISOString(), new Date().toISOString());
+  legacyDb.prepare('INSERT INTO accounts VALUES (?, ?, ?, ?)').run('00000000-0000-4000-8000-000000000001', 'legacy', 'test-salt', scryptSync('СтарыйПароль123', 'test-salt', 64).toString('hex'));
+  legacyDb.close();
   const port = 19371;
   let child;
   async function start() {
@@ -33,13 +41,17 @@ test('Accounts, ownership, drafts and runs persist through server restart', asyn
   try {
     await start();
     const first=client(),second=client(),guest=client();
+    const legacy = client();
+    const oldLogin = await legacy('/api/auth/login', { login: 'legacy', password: 'СтарыйПароль123' });
+    assert.equal(oldLogin.status, 200); assert.equal(oldLogin.data.profile.email, null);
     assert.equal((await guest('/api/auth/me')).data.profile,null);
+    for (const email of ['безсобаки.kz','a@','@example.kz','a@@example.kz','a@domain','a b@example.kz']) assert.equal((await guest('/api/auth/register',{email,nickname:'Имя',password:'Секрет12345'})).status,400);
     assert.equal((await guest('/api/account/draft')).status,401);
-    const registered=await first('/api/auth/register',{login:'alice',password:'hackathon-pass',nickname:'Алия'});
+    const registered=await first('/api/auth/register',{email:'алия@example.kz',password:'СекретныйПароль123',nickname:'Алия'});
     assert.equal(registered.status,201);assert.match(registered.cookie,/HttpOnly/);assert.match(registered.cookie,/SameSite=Strict/i);
     const profileId=registered.data.profile.id;
-    assert.equal((await second('/api/auth/register',{login:'alice',password:'different-pass',nickname:'Другой'})).status,409);
-    await second('/api/auth/register',{login:'bob',password:'another-pass',nickname:'Боб'});
+    assert.equal((await second('/api/auth/register',{email:'алия@example.kz',password:'different-pass',nickname:'Другой'})).status,409);
+    await second('/api/auth/register',{email:'boris@example.kz',password:'another-pass',nickname:'Боб'});
     assert.equal((await second(`/api/profile/${profileId}/runs`)).status,403);
     assert.equal((await guest(`/api/profile/${profileId}`)).status,401);
     assert.equal((await second(`/api/profile/${profileId}`,{nickname:'Подмена'},'PUT')).status,403);
@@ -63,8 +75,8 @@ test('Accounts, ownership, drafts and runs persist through server restart', asyn
     assert.deepEqual((await first('/api/account/draft')).data.selectedIds,selectedIds.slice(0,2));
     const runs=(await first(`/api/profile/${profileId}/runs`)).data;assert.equal(runs.length,1);assert.equal(runs[0].spent,850000000);
     await first('/api/auth/logout',{});assert.equal((await first(`/api/profile/${profileId}/runs`)).status,401);
-    assert.equal((await first('/api/auth/login',{login:'alice',password:'wrong'})).status,401);
-    assert.equal((await first('/api/auth/login',{login:'ALICE',password:'hackathon-pass'})).status,200);
+    assert.equal((await first('/api/auth/login',{email:'алия@example.kz',password:'wrong'})).status,401);
+    assert.equal((await first('/api/auth/login',{email:'АЛИЯ@example.kz',password:'СекретныйПароль123'})).status,200);
     assert.equal((await first(`/api/profile/${profileId}/runs`)).data.length,1);
     const html=await fetch(`http://127.0.0.1:${port}`);assert.equal(html.status,200);
   } finally {

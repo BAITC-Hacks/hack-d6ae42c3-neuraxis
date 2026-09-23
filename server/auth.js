@@ -1,5 +1,6 @@
 import { randomBytes, randomUUID, scrypt, timingSafeEqual, createHash } from 'node:crypto';
 import { promisify } from 'node:util';
+import { normalizeEmail, validEmail } from '../src/shared/validation.js';
 const derive = promisify(scrypt);
 const hash = value => createHash('sha256').update(value).digest('hex');
 const cookieName = 'qala_session';
@@ -18,6 +19,8 @@ export function installAuth(app, db) {
       profile_id TEXT PRIMARY KEY REFERENCES accounts(profile_id), selected_ids TEXT NOT NULL, updated_at TEXT NOT NULL
     );
   `);
+  if (!db.prepare('PRAGMA table_info(accounts)').all().some(column => column.name === 'email')) db.exec('ALTER TABLE accounts ADD COLUMN email TEXT');
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS accounts_email ON accounts(email)');
   const getToken = req => (req.headers.cookie || '').split(';').map(s => s.trim()).find(s => s.startsWith(cookieName + '='))?.slice(cookieName.length + 1);
   const cookieOptions = { httpOnly: true, sameSite: 'strict', secure: process.env.COOKIE_SECURE === 'true', path: '/' };
   const createSession = (res, profileId) => {
@@ -30,7 +33,7 @@ export function installAuth(app, db) {
     if (!['GET', 'HEAD'].includes(req.method) && req.headers['sec-fetch-site'] === 'cross-site') return res.status(403).json({ error: 'Запрос с другого сайта отклонён.' });
     const token = getToken(req);
     if (token && /^[a-f0-9]{64}$/.test(token)) {
-      req.account = db.prepare(`SELECT p.id, p.nickname, p.team, p.created_at AS createdAt, a.login
+      req.account = db.prepare(`SELECT p.id, p.nickname, p.team, p.created_at AS createdAt, a.login, a.email
         FROM sessions s JOIN profiles p ON p.id = s.profile_id JOIN accounts a ON a.profile_id = p.id
         WHERE s.token_hash = ? AND s.expires_at > ?`).get(hash(token), Date.now());
     }
@@ -47,10 +50,11 @@ export function installAuth(app, db) {
   };
   app.get('/api/auth/me', (req, res) => res.json({ profile: req.account || null }));
   app.post('/api/auth/register', limited, async (req, res) => {
-    const login = String(req.body?.login || '').trim().toLowerCase();
+    const email = normalizeEmail(req.body?.email);
+    const login = email;
     const nickname = String(req.body?.nickname || '').trim().slice(0, 32);
     const password = req.body?.password;
-    if (!/^[a-z0-9_.-]{3,40}$/.test(login)) return res.status(400).json({ error: 'Логин: 3–40 латинских букв, цифр, точек, дефисов или подчёркиваний.' });
+    if (!validEmail(email)) return res.status(400).json({ error: 'Введите корректную почту, например имя@example.kz. Нужны символ @ и домен.' });
     if (nickname.length < 2 || typeof password !== 'string' || password.length < 8 || password.length > 128) return res.status(400).json({ error: 'Укажите имя от 2 символов и пароль длиной 8–128 символов.' });
     try {
       const salt = randomBytes(16).toString('hex');
@@ -59,18 +63,19 @@ export function installAuth(app, db) {
       db.exec('BEGIN');
       try {
         db.prepare('INSERT INTO profiles VALUES (?, ?, ?, ?, ?)').run(id, nickname, '', now, now);
-        db.prepare('INSERT INTO accounts VALUES (?, ?, ?, ?)').run(id, login, salt, passwordHash);
+        db.prepare('INSERT INTO accounts (profile_id, login, salt, password_hash, email) VALUES (?, ?, ?, ?, ?)').run(id, login, salt, passwordHash, email);
         db.exec('COMMIT');
       } catch (e) { db.exec('ROLLBACK'); throw e; }
       createSession(res, id);
-      res.status(201).json({ profile: { id, login, nickname, team: '', createdAt: now } });
+      res.status(201).json({ profile: { id, login, email, nickname, team: '', createdAt: now } });
     } catch (e) {
-      if (String(e.message).includes('UNIQUE')) return res.status(409).json({ error: 'Этот логин уже занят.' });
+      if (String(e.message).includes('UNIQUE')) return res.status(409).json({ error: 'Эта почта уже зарегистрирована. Войдите в аккаунт.' });
       console.error('Registration failed:', e.message); res.status(500).json({ error: 'Не удалось создать кабинет. Попробуйте ещё раз.' });
     }
   });
   app.post('/api/auth/login', limited, async (req, res) => {
-    const login = String(req.body?.login || '').trim().toLowerCase(), password = req.body?.password;
+    const login = normalizeEmail(req.body?.email ?? req.body?.login), password = req.body?.password;
+    if (req.body?.email !== undefined && !validEmail(login)) return res.status(400).json({ error: 'Введите корректную почту с символом @ и доменом.' });
     if (typeof password !== 'string' || password.length > 128) return res.status(400).json({ error: 'Укажите логин и пароль.' });
     try {
       const account = db.prepare('SELECT * FROM accounts WHERE login = ?').get(login);
@@ -78,7 +83,7 @@ export function installAuth(app, db) {
       if (!account || !timingSafeEqual(candidate, Buffer.from(account.password_hash, 'hex'))) return res.status(401).json({ error: 'Неверный логин или пароль.' });
       createSession(res, account.profile_id);
       const profile = db.prepare('SELECT id, nickname, team, created_at AS createdAt FROM profiles WHERE id = ?').get(account.profile_id);
-      res.json({ profile: { ...profile, login } });
+      res.json({ profile: { ...profile, login, email: account.email } });
     } catch { res.status(500).json({ error: 'Не удалось войти. Попробуйте ещё раз.' }); }
   });
   app.post('/api/auth/logout', (req, res) => {
