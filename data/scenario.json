@@ -1,0 +1,36 @@
+{
+  "title": "Астана: город для жизни",
+  "subtitle": "Ваша задача — улучшить повседневную жизнь горожан, распределив ограниченный бюджет между пятью направлениями.",
+  "budget": 100,
+  "currency": "усл. ед.",
+  "weights": { "transport": 0.25, "green": 0.2, "social": 0.2, "safety": 0.2, "services": 0.15 },
+  "dimensions": [
+    { "id": "transport", "label": "Транспорт", "short": "Транспорт", "color": "#4d78e8", "icon": "route", "description": "Доступность и скорость перемещения" },
+    { "id": "green", "label": "Озеленение", "short": "Зелёные зоны", "color": "#4b9c73", "icon": "leaf", "description": "Доступ жителей к паркам и тени" },
+    { "id": "social", "label": "Социальная инфраструктура", "short": "Инфраструктура", "color": "#d38a3e", "icon": "users", "description": "Доступность школ, поликлиник и центров" },
+    { "id": "safety", "label": "Безопасность", "short": "Безопасность", "color": "#a16ac0", "icon": "shield", "description": "Безопасность улиц и общественных пространств" },
+    { "id": "services", "label": "Городской сервис", "short": "Сервисы", "color": "#db6871", "icon": "building", "description": "Удобство городских услуг" }
+  ],
+  "districts": [
+    { "id": "yesil", "name": "Есиль", "zone": "Левый берег", "population": 145, "stats": { "transport": 61, "green": 66, "social": 58, "safety": 72, "services": 70 } },
+    { "id": "almaty", "name": "Алматы", "zone": "Южная часть", "population": 210, "stats": { "transport": 48, "green": 44, "social": 68, "safety": 60, "services": 55 } },
+    { "id": "saryarka", "name": "Сарыарка", "zone": "Старый город", "population": 176, "stats": { "transport": 55, "green": 53, "social": 63, "safety": 56, "services": 59 } }
+  ],
+  "initiatives": [
+    { "id": "bus-priority", "dimension": "transport", "title": "Выделенные полосы для автобусов", "district": "almaty", "cost": 24, "impact": { "transport": 13, "services": 1 }, "tag": "Быстрый эффект", "detail": "Сокращает время поездки и делает расписание надёжнее." },
+    { "id": "mobility-hub", "dimension": "transport", "title": "Транспортный хаб у пересадки", "district": "yesil", "cost": 29, "impact": { "transport": 15, "green": -2, "services": 2 }, "tag": "Связность", "detail": "Упрощает пересадки, но занимает часть открытого пространства." },
+    { "id": "safe-crossings", "dimension": "transport", "title": "Безопасные переходы и светофоры", "district": "saryarka", "cost": 18, "impact": { "transport": 7, "safety": 8 }, "tag": "Сбалансированно", "detail": "Повышает безопасность пешеходов и связность кварталов." },
+    { "id": "pocket-parks", "dimension": "green", "title": "Карманные парки во дворах", "district": "almaty", "cost": 19, "impact": { "green": 13, "safety": 2 }, "tag": "Близко к дому", "detail": "Небольшие зелёные пространства рядом с жилыми кварталами." },
+    { "id": "river-park", "dimension": "green", "title": "Зелёный коридор у набережной", "district": "yesil", "cost": 28, "impact": { "green": 16, "safety": 2 }, "tag": "Долгий эффект", "detail": "Создаёт непрерывный маршрут отдыха и защищает прогулочную зону." },
+    { "id": "schoolyards", "dimension": "green", "title": "Зелёные школьные дворы", "district": "saryarka", "cost": 15, "impact": { "green": 8, "social": 4 }, "tag": "Для семей", "detail": "Даёт детям тенистые пространства рядом с домом и школой." },
+    { "id": "clinic", "dimension": "social", "title": "Модернизация районной поликлиники", "district": "almaty", "cost": 27, "impact": { "social": 14, "services": 3 }, "tag": "Высокий спрос", "detail": "Увеличивает доступность первичной медицинской помощи." },
+    { "id": "youth-center", "dimension": "social", "title": "Молодёжный центр и кружки", "district": "saryarka", "cost": 20, "impact": { "social": 10, "safety": 3 }, "tag": "Сообщество", "detail": "Создаёт доступные занятия и безопасное место для подростков." },
+    { "id": "inclusive-school", "dimension": "social", "title": "Доступная среда в школе", "district": "yesil", "cost": 17, "impact": { "social": 9, "services": 2 }, "tag": "Равный доступ", "detail": "Улучшает доступность школьной инфраструктуры для всех детей." },
+    { "id": "street-light", "dimension": "safety", "title": "Освещение тёмных улиц", "district": "saryarka", "cost": 16, "impact": { "safety": 12, "transport": 2 }, "tag": "Можно быстро", "detail": "Снижает число неосвещённых участков на ежедневных маршрутах." },
+    { "id": "safe-stops", "dimension": "safety", "title": "Безопасные остановки и камеры", "district": "almaty", "cost": 25, "impact": { "safety": 14, "services": 2 }, "tag": "Остановка рядом", "detail": "Улучшает видимость, ожидание транспорта и оперативное реагирование." },
+    { "id": "neighborhood-patrol", "dimension": "safety", "title": "Соседские центры безопасности", "district": "yesil", "cost": 18, "impact": { "safety": 8, "social": 3 }, "tag": "Работа с жителями", "detail": "Соединяет профилактику, освещение и обратную связь горожан." },
+    { "id": "one-window", "dimension": "services", "title": "Цифровое окно городских услуг", "district": "yesil", "cost": 20, "impact": { "services": 14, "social": 2 }, "tag": "Меньше ожидания", "detail": "Объединяет заявки и статусы городских услуг в одном канале." },
+    { "id": "repair-team", "dimension": "services", "title": "Районная команда быстрого ремонта", "district": "saryarka", "cost": 17, "impact": { "services": 10, "safety": 3 }, "tag": "Заметно каждый день", "detail": "Быстрее устраняет поломки освещения, тротуаров и остановок." },
+    { "id": "service-desk", "dimension": "services", "title": "Единый центр обращений жителей", "district": "almaty", "cost": 13, "impact": { "services": 7, "social": 2 }, "tag": "Недорогой старт", "detail": "Собирает обращения и помогает видеть проблемы по районам." }
+  ]
+}
