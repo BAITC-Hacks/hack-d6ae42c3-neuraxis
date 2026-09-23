@@ -1,0 +1,4 @@
+# Фотографии Астаны
+
+- `astana-reference.jpg` — фотография, предоставленная пользователем для оформления проекта: https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRHd30JT6bnIQ56EdNlDIEj-qz1ermOYOapTBTP8DbBD4P7F3DuFbc6saNc&s=10 . Автор и лицензия исходной фотографии в ссылке не указаны. Файл сохранён без редактирования, в интерфейсе используется CSS-кадрирование.
+- `astana-panorama.jpg` — вечерняя панорама из фотогалереи The Ritz-Carlton, Astana / Marriott: https://www.ritzcarlton.com/en/hotels/tserz-the-ritz-carlton-astana/photos/ . Источник файла: https://cache.marriott.com/content/dam/marriott-renditions/TSERZ/tserz-view-6835-hor-wide.jpg . Сохранена версия 1336 px. Файл не редактировался, в интерфейсе применяется CSS-кадрирование. Источник указан на странице; свободная лицензия не заявляется.

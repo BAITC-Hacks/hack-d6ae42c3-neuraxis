@@ -1,0 +1,53 @@
+.sidebar { height: 100dvh; overflow-y: auto; overscroll-behavior: contain; }
+.topbar { position: sticky; top: 0; z-index: 15; background: #f9fbf8f5; backdrop-filter: blur(14px); }
+.header-account { display: flex; align-items: center; gap: 10px; background: #fff; padding: 6px 10px 6px 6px; border: 1px solid #dfe7da; border-radius: 30px; text-align: left; }
+.header-account .avatar { width: 31px; height: 31px; font-size: 12px; background: #e9f1e1; color: #4c7741; border-color: #dbe8d0; }
+.header-account-copy { max-width: 150px; }
+.header-account b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; }
+.header-account small { display: block; color: #95a18b; font-size: 8px; margin-top: 3px; }
+.header-account.active { border-color: #73a267; background: #f0f7eb; }
+.city-hero { display: grid; grid-template-columns: .95fr 1.05fr; margin: 0 0 28px; border: 1px solid #dde7d6; border-radius: 16px; overflow: hidden; background: #edf3e6; }
+.city-hero-copy { padding: 32px 34px; display: flex; flex-direction: column; align-items: flex-start; }
+.hero-kicker { display: flex; align-items: center; gap: 7px; color: #6b8660; letter-spacing: 1.8px; font-size: 8px; font-weight: 700; }
+.city-hero h2 { font-size: clamp(25px,2.6vw,39px); line-height: 1.2; letter-spacing: -1.6px; margin: 19px 0 15px; font-weight: 800; }
+.city-hero h2 em { font-style: normal; color: #739563; font-weight: 500; }
+.city-hero-copy p { font-size: 11px; line-height: 1.9; max-width: 320px; color: #7b8e6d; margin-bottom: 23px; }
+.city-hero-copy .button { padding: 12px 17px; font-size: 11px; }
+.hero-caption { font-size: 8px; color: #8fa07e; margin-top: 13px; }
+.city-hero figure { margin: 0; position: relative; min-width: 0; overflow: hidden; }
+.hero-photo { min-height: 350px; background: #acbec5; }
+.hero-photo img { width: 100%; height: 100%; position: absolute; inset: 0; object-fit: cover; object-position: 58% center; }
+.hero-photo:after { content: ''; position: absolute; inset: 50% 0 0; background: linear-gradient(transparent,#152c3a88); pointer-events: none; }
+.hero-photo figcaption { position: absolute; bottom: 21px; left: 22px; right: 18px; display: flex; align-items: center; gap: 8px; color: white; font-size: 9px; z-index: 1; }
+.hero-photo-dot { width: 6px; height: 6px; background: #c9e7a5; border-radius: 50%; }
+.hero-panorama { grid-column: 1/-1; height: 135px; border-top: 4px solid #f5f7f0; background: #92b9d0; }
+.hero-panorama img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
+.hero-panorama figcaption { position: absolute; inset: auto 0 0; display: flex; gap: 12px; align-items: center; background: linear-gradient(transparent,#142b42b5); color: #fff; padding: 24px 21px 10px; font-size: 7px; }
+.hero-panorama figcaption>span { font-size: 10px; margin-right: auto; font-weight: 600; letter-spacing: .3px; }
+.hero-panorama a { text-decoration: underline; text-underline-offset: 2px; }
+#development-plan { scroll-margin-top: 94px; }
+.step-announcement { color: #628451; font-size: 10px; min-height: 20px; margin: -4px 0 12px; }
+@media(max-width:960px) { .city-hero-copy { padding: 25px; } .hero-photo { min-height: 335px; } .city-hero-copy p { font-size: 10px; } .header-right { gap: 10px; } .header-right .locale,.header-right .live-pill { display: none; } }
+@media(max-width:700px) {
+  .sidebar { height: 63px; overflow: visible; }
+  .topbar { top: 63px; height: 59px; padding: 0 17px; }
+  .breadcrumb { font-size: 0; gap: 0; }
+  .breadcrumb>svg { display: none; }
+  .breadcrumb>b { font-size: 9px; }
+  .header-account { gap: 6px; padding: 4px 8px 4px 4px; }
+  .header-account-copy { max-width: 110px; }
+  .header-account small { font-size: 7px; }
+  .header-account b { font-size: 9px; }
+  .header-account .avatar { width: 27px; height: 27px; }
+  .city-hero { grid-template-columns: 1fr; border-radius: 12px; }
+  .city-hero-copy { padding: 25px; }
+  .city-hero h2 { font-size: 33px; }
+  .city-hero-copy p { font-size: 11px; max-width: none; }
+  .hero-photo { min-height: 230px; }
+  .hero-photo img { object-position: center 54%; }
+  .hero-panorama { height: 100px; }
+  .hero-panorama figcaption { padding: 20px 12px 8px; gap: 7px; font-size: 6px; }
+  .hero-panorama figcaption>span { font-size: 8px; }
+  #development-plan { scroll-margin-top: 137px; }
+}
+@media print { .city-hero { display: none; } }
