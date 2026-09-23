@@ -1,6 +1,9 @@
 import { randomBytes, randomUUID, scrypt, timingSafeEqual, createHash } from 'node:crypto';
 import { promisify } from 'node:util';
 import { normalizeEmail, validEmail } from '../src/shared/validation.js';
+import { DEFAULT_AVATAR, isAvatar } from '../src/shared/avatars.js';
+import { RESERVED_AKIM_EMAIL, ROLES } from '../src/shared/community.js';
+import { parseAvatar, avatarUrlSql } from './avatar-storage.js';
 const derive = promisify(scrypt);
 const hash = value => createHash('sha256').update(value).digest('hex');
 const cookieName = 'qala_session';
@@ -21,6 +24,13 @@ export function installAuth(app, db) {
   `);
   if (!db.prepare('PRAGMA table_info(accounts)').all().some(column => column.name === 'email')) db.exec('ALTER TABLE accounts ADD COLUMN email TEXT');
   db.exec('CREATE UNIQUE INDEX IF NOT EXISTS accounts_email ON accounts(email)');
+  if (!db.prepare('PRAGMA table_info(profiles)').all().some(column => column.name === 'avatar')) db.exec("ALTER TABLE profiles ADD COLUMN avatar TEXT NOT NULL DEFAULT 'city'");
+  const profileColumns = db.prepare('PRAGMA table_info(profiles)').all();
+  for (const [name, definition] of [['role', "TEXT NOT NULL DEFAULT 'citizen'"], ['avatar_image', 'BLOB'], ['avatar_mime', 'TEXT']]) {
+    if (!profileColumns.some(column => column.name === name)) db.exec(`ALTER TABLE profiles ADD COLUMN ${name} ${definition}`);
+  }
+  db.exec('CREATE TABLE IF NOT EXISTS reserved_accounts (email TEXT PRIMARY KEY, reason TEXT NOT NULL)');
+  db.prepare('INSERT OR IGNORE INTO reserved_accounts VALUES (?, ?)').run(RESERVED_AKIM_EMAIL, 'Адрес зарезервирован для отдельного подтверждения владельца');
   const getToken = req => (req.headers.cookie || '').split(';').map(s => s.trim()).find(s => s.startsWith(cookieName + '='))?.slice(cookieName.length + 1);
   const cookieOptions = { httpOnly: true, sameSite: 'strict', secure: process.env.COOKIE_SECURE === 'true', path: '/' };
   const createSession = (res, profileId) => {
@@ -33,7 +43,7 @@ export function installAuth(app, db) {
     if (!['GET', 'HEAD'].includes(req.method) && req.headers['sec-fetch-site'] === 'cross-site') return res.status(403).json({ error: 'Запрос с другого сайта отклонён.' });
     const token = getToken(req);
     if (token && /^[a-f0-9]{64}$/.test(token)) {
-      req.account = db.prepare(`SELECT p.id, p.nickname, p.team, p.created_at AS createdAt, a.login, a.email
+      req.account = db.prepare(`SELECT p.id, p.nickname, p.team, p.avatar, p.role, ${avatarUrlSql('p.')}, p.created_at AS createdAt, a.login, a.email
         FROM sessions s JOIN profiles p ON p.id = s.profile_id JOIN accounts a ON a.profile_id = p.id
         WHERE s.token_hash = ? AND s.expires_at > ?`).get(hash(token), Date.now());
     }
@@ -54,6 +64,13 @@ export function installAuth(app, db) {
     const login = email;
     const nickname = String(req.body?.nickname || '').trim().slice(0, 32);
     const password = req.body?.password;
+    const avatar = req.body?.avatar ?? DEFAULT_AVATAR;
+    const role = req.body?.role ?? 'citizen';
+    if (!ROLES.includes(role)) return res.status(400).json({ error: 'Выберите роль: аким или гражданин.' });
+    if (db.prepare('SELECT email FROM reserved_accounts WHERE email = ?').get(email)) return res.status(403).json({ error: 'Этот адрес зарезервирован. Самостоятельная регистрация недоступна: требуется отдельное подтверждение владельца.' });
+    let photo;
+    try { photo = parseAvatar(req.body?.avatarData); } catch (e) { return res.status(400).json({ error: e.message }); }
+    if (!isAvatar(avatar)) return res.status(400).json({ error: 'Выберите аватарку из списка.' });
     if (!validEmail(email)) return res.status(400).json({ error: 'Введите корректную почту, например имя@example.kz. Нужны символ @ и домен.' });
     if (nickname.length < 2 || typeof password !== 'string' || password.length < 8 || password.length > 128) return res.status(400).json({ error: 'Укажите имя от 2 символов и пароль длиной 8–128 символов.' });
     try {
@@ -62,12 +79,12 @@ export function installAuth(app, db) {
       const id = randomUUID(), now = new Date().toISOString();
       db.exec('BEGIN');
       try {
-        db.prepare('INSERT INTO profiles VALUES (?, ?, ?, ?, ?)').run(id, nickname, '', now, now);
+        db.prepare('INSERT INTO profiles (id, nickname, team, created_at, updated_at, avatar, role, avatar_image, avatar_mime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run(id, nickname, '', now, now, avatar, role, photo?.bytes || null, photo?.mime || null);
         db.prepare('INSERT INTO accounts (profile_id, login, salt, password_hash, email) VALUES (?, ?, ?, ?, ?)').run(id, login, salt, passwordHash, email);
         db.exec('COMMIT');
       } catch (e) { db.exec('ROLLBACK'); throw e; }
       createSession(res, id);
-      res.status(201).json({ profile: { id, login, email, nickname, team: '', createdAt: now } });
+      res.status(201).json({ profile: { id, login, email, nickname, avatar, role, avatarUrl: photo ? `/api/avatars/${id}?v=${now}` : null, team: '', createdAt: now } });
     } catch (e) {
       if (String(e.message).includes('UNIQUE')) return res.status(409).json({ error: 'Эта почта уже зарегистрирована. Войдите в аккаунт.' });
       console.error('Registration failed:', e.message); res.status(500).json({ error: 'Не удалось создать кабинет. Попробуйте ещё раз.' });
@@ -82,7 +99,7 @@ export function installAuth(app, db) {
       const candidate = await derive(password, account?.salt || 'invalid-account-salt', 64);
       if (!account || !timingSafeEqual(candidate, Buffer.from(account.password_hash, 'hex'))) return res.status(401).json({ error: 'Неверный логин или пароль.' });
       createSession(res, account.profile_id);
-      const profile = db.prepare('SELECT id, nickname, team, created_at AS createdAt FROM profiles WHERE id = ?').get(account.profile_id);
+      const profile = db.prepare(`SELECT id, nickname, team, avatar, role, ${avatarUrlSql()}, created_at AS createdAt FROM profiles WHERE id = ?`).get(account.profile_id);
       res.json({ profile: { ...profile, login, email: account.email } });
     } catch { res.status(500).json({ error: 'Не удалось войти. Попробуйте ещё раз.' }); }
   });
@@ -94,7 +111,14 @@ export function installAuth(app, db) {
 
 export function requireAccount(req, res, next) {
   if (!req.account) return res.status(401).json({ error: 'Войдите в личный кабинет.' });
-  const profileId = req.params.id || req.body?.profileId;
+  const profileId = req.route?.path?.startsWith('/api/profile/') ? req.params.id : req.body?.profileId;
   if (profileId && profileId !== req.account.id) return res.status(403).json({ error: 'Этот профиль принадлежит другому пользователю.' });
   next();
+}
+
+export function requireAkim(req, res, next) {
+  return requireAccount(req, res, () => {
+    if (req.account.role !== 'akim') return res.status(403).json({ error: 'Калькулятор городских решений доступен только акиму.' });
+    next();
+  });
 }

@@ -1,6 +1,12 @@
 import 'dotenv/config';
 import { scoreScenario as calculateScore } from '../src/shared/model.js';
-import { installAuth, requireAccount } from './auth.js';
+import { installAuth, requireAccount, requireAkim } from './auth.js';
+import { isAvatar } from '../src/shared/avatars.js';
+import { parseAvatar, avatarUrlSql } from './avatar-storage.js';
+import { installCommunity } from './community.js';
+import { seedDemoData } from './demo-data.js';
+import { installWeather } from './weather.js';
+import { requestAiReport, AiError } from './ai-client.js';
 import scenario from '../data/scenario.json' with { type: 'json' };
 import express from 'express';
 import fs from 'node:fs';
@@ -37,15 +43,29 @@ db.exec(`
     ON scenario_runs(profile_id, created_at DESC);
 `);
 
-app.use(express.json({ limit: '32kb' }));
+app.use(express.json({ limit: '6mb' }));
+app.use((error, _req, res, next) => {
+  if (error.type === 'entity.too.large') return res.status(413).json({ error: 'Фотографии слишком большие. Прикрепите до 4 фото размером до 1 МБ после обработки.' });
+  if (error.type === 'entity.parse.failed') return res.status(400).json({ error: 'Некорректный формат запроса.' });
+  next(error);
+});
 installAuth(app, db);
+installCommunity(app, db);
+// Bundle examples for a fresh local demo; tests use isolated databases without seed data.
+if (process.env.DEMO_DATA !== 'false' && process.env.DATABASE_PATH !== ':memory:') seedDemoData(db);
+installWeather(app);
+app.get('/api/avatars/:id', (req, res) => {
+  const row = db.prepare('SELECT avatar_image, avatar_mime FROM profiles WHERE id = ?').get(req.params.id);
+  if (!row?.avatar_image) return res.status(404).end();
+  res.set({ 'Content-Type': row.avatar_mime, 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-cache' }).send(Buffer.from(row.avatar_image));
+});
 
 const isProfileId = (value) => typeof value === 'string' && /^[0-9a-f-]{36}$/i.test(value);
 function ensureProfile(id) {
   const now = new Date().toISOString();
   db.prepare(`INSERT OR IGNORE INTO profiles (id, nickname, team, created_at, updated_at)
     VALUES (?, 'Гость города', '', ?, ?)`).run(id, now, now);
-  return db.prepare('SELECT id, nickname, team, created_at AS createdAt FROM profiles WHERE id = ?').get(id);
+  return db.prepare(`SELECT id, nickname, team, avatar, role, ${avatarUrlSql()}, created_at AS createdAt FROM profiles WHERE id = ?`).get(id);
 }
 function cleanReport(report) {
   if (!report || typeof report !== 'object') return { summary: '', strengths: [], risks: [], recommendations: [] };
@@ -103,29 +123,26 @@ async function aiAnalysis(result) {
     districts: result.districts,
     metrics: scenario.dimensions.map(({ id, label }) => ({ label, ...result.metrics[id] })),
   };
-  const response = await fetch(`${base}/chat/completions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-    body: JSON.stringify({
-      model,
-      temperature: 0.4,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: 'Ты аналитик симулятора городского управления. Все денежные суммы в казахстанских тенге (₸). Отвечай на русском кратко и опирайся только на переданные цифры. Не меняй рассчитанный Score, не выдумывай причинность и факты. Укажи компромиссы и конкретные рекомендации. Верни JSON: {"title":string,"summary":string,"strengths":string[],"risks":string[],"recommendations":string[]}. Каждый список — 1–3 коротких пункта.' },
-        { role: 'user', content: JSON.stringify(summaryData) },
-      ],
-    }),
-    signal: AbortSignal.timeout(18000),
-  });
-  if (!response.ok) throw new Error(`AI provider returned ${response.status}`);
-  const payload = await response.json();
-  const text = payload.choices?.[0]?.message?.content;
-  if (!text) throw new Error('AI response is empty');
-  const resultJson = JSON.parse(text);
-  for (const key of ['summary', 'strengths', 'risks', 'recommendations']) {
-    if (!resultJson[key] || (key !== 'summary' && !Array.isArray(resultJson[key]))) throw new Error('AI response shape is invalid');
-  }
-  return cleanReport({ ...resultJson, source: 'ai' });
+  return requestAiReport(summaryData, { apiKey: process.env.OPENAI_API_KEY, model, baseUrl: base });
+}
+
+const analysisCache = new Map(), analysisPending = new Map(), analysisAttempts = new Map();
+async function limitedAnalysis(result, clientId) {
+  if (!process.env.OPENAI_API_KEY) return localAnalysis(result);
+  const now = Date.now(), planKey = result.selected.map(item => item.id).sort().join(',');
+  for (const [key, value] of analysisCache) if (value.expires < now) analysisCache.delete(key);
+  for (const [key, value] of analysisAttempts) if (value.expires < now) analysisAttempts.delete(key);
+  if (analysisCache.has(planKey)) return analysisCache.get(planKey).report;
+  if (analysisPending.has(planKey)) return analysisPending.get(planKey);
+  const limit = analysisAttempts.get(clientId) || { count: 0, expires: now + 60_000 };
+  if (limit.count >= 6 || analysisPending.size >= 2) return { ...localAnalysis(result), aiUnavailable: true };
+  limit.count++; analysisAttempts.set(clientId, limit);
+  const pending = aiAnalysis(result).then(report => {
+    analysisCache.set(planKey, { report, expires: Date.now() + 10 * 60_000 });
+    return report;
+  }).finally(() => analysisPending.delete(planKey));
+  analysisPending.set(planKey, pending);
+  return pending;
 }
 
 // Upgrade saved demo runs to KZT and the current scoring model.
@@ -150,13 +167,20 @@ app.put('/api/profile/:id', requireAccount, (req, res) => {
   if (!isProfileId(req.params.id)) return res.status(400).json({ error: 'Некорректный ID профиля.' });
   const nickname = String(req.body?.nickname || '').trim().slice(0, 32);
   const team = String(req.body?.team || '').trim().slice(0, 48);
+  const avatar = req.body?.avatar ?? req.account.avatar;
+  if (!isAvatar(avatar)) return res.status(400).json({ error: 'Выберите аватарку из списка.' });
+  let photo;
+  try { photo = parseAvatar(req.body?.avatarData); } catch (e) { return res.status(400).json({ error: e.message }); }
   if (nickname.length < 2) return res.status(400).json({ error: 'Имя должно содержать минимум 2 символа.' });
   ensureProfile(req.params.id);
   const now = new Date().toISOString();
-  db.prepare('UPDATE profiles SET nickname = ?, team = ?, updated_at = ? WHERE id = ?').run(nickname, team, now, req.params.id);
+  db.prepare(`UPDATE profiles SET nickname = ?, team = ?, avatar = ?, updated_at = ?,
+    avatar_image = CASE WHEN ? THEN ? ELSE avatar_image END,
+    avatar_mime = CASE WHEN ? THEN ? ELSE avatar_mime END WHERE id = ?`)
+    .run(nickname, team, avatar, now, Number(photo !== undefined), photo?.bytes || null, Number(photo !== undefined), photo?.mime || null, req.params.id);
   res.json(ensureProfile(req.params.id));
 });
-app.get('/api/profile/:id/runs', requireAccount, (req, res) => {
+app.get('/api/profile/:id/runs', requireAkim, (req, res) => {
   if (!isProfileId(req.params.id)) return res.status(400).json({ error: 'Некорректный ID профиля.' });
   ensureProfile(req.params.id);
   const rows = db.prepare(`SELECT id, score, baseline_score AS baselineScore, spent,
@@ -164,11 +188,11 @@ app.get('/api/profile/:id/runs', requireAccount, (req, res) => {
     FROM scenario_runs WHERE profile_id = ? ORDER BY created_at DESC LIMIT 30`).all(req.params.id);
   res.json(rows.map((row) => ({ ...row, selectedIds: JSON.parse(row.selectedIds), report: JSON.parse(row.reportJson), reportJson: undefined })));
 });
-app.get('/api/account/draft', requireAccount, (req, res) => {
+app.get('/api/account/draft', requireAkim, (req, res) => {
   const row = db.prepare('SELECT selected_ids, updated_at FROM drafts WHERE profile_id = ?').get(req.account.id);
   res.json(row ? { selectedIds: JSON.parse(row.selected_ids), updatedAt: row.updated_at } : null);
 });
-app.put('/api/account/draft', requireAccount, (req, res) => {
+app.put('/api/account/draft', requireAkim, (req, res) => {
   try {
     scoreScenario(req.body?.selectedIds);
     const updatedAt = new Date().toISOString();
@@ -177,7 +201,7 @@ app.put('/api/account/draft', requireAccount, (req, res) => {
     res.json({ selectedIds: req.body.selectedIds, updatedAt });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
-app.post('/api/runs', requireAccount, (req, res) => {
+app.post('/api/runs', requireAkim, (req, res) => {
   const { profileId, selectedIds } = req.body || {};
   if (!isProfileId(profileId)) return res.status(400).json({ error: 'Некорректный ID профиля.' });
   try {
@@ -197,17 +221,17 @@ app.post('/api/runs', requireAccount, (req, res) => {
     res.status(201).json(run);
   } catch (error) { res.status(400).json({ error: error.message }); }
 });
-app.post('/api/score', (req, res) => {
+app.post('/api/score', requireAkim, (req, res) => {
   try { res.json(scoreScenario(req.body?.selectedIds)); }
   catch (error) { res.status(400).json({ error: error.message }); }
 });
-app.post('/api/analyze', async (req, res) => {
+app.post('/api/analyze', requireAkim, async (req, res) => {
   try {
     const result = scoreScenario(req.body?.selectedIds);
     if (!result.complete) return res.status(400).json({ error: 'Завершите все пять решений перед анализом.' });
-    try { res.json(await aiAnalysis(result)); }
+    try { res.json(await limitedAnalysis(result, req.ip)); }
     catch (error) {
-      console.error('AI analysis unavailable:', error.message);
+      console.error('AI analysis unavailable:', error instanceof AiError ? error.code : 'UNKNOWN', error instanceof AiError ? error.status || '' : '');
       res.json({ ...localAnalysis(result), aiUnavailable: true });
     }
   } catch (error) { res.status(400).json({ error: error.message }); }

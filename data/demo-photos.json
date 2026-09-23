@@ -1,0 +1,29 @@
+{
+  "trash": {
+    "file": "public/images/demo/astana-trash.jpg",
+    "sourceName": "Informburo.kz · фото редакции",
+    "sourceUrl": "https://informburo.kz/fotoreportazh/musoryat-stroikompanii-a-ubirayut-akimaty-kak-astana-prevratilas-v-stolicu-stixiinyx-svalok",
+    "year": 2023,
+    "publishedAt": "2023-07-20",
+    "imageUrl": "https://informburo.kz/storage/photos/181/64b8ce282def3.jpg",
+    "rights": "Фото Informburo.kz, не свободная лицензия. Сохранены исходный файл и водяной знак. Правила источника требуют видимого водяного знака и активной ссылки; коммерческое использование требует разрешения. https://informburo.kz/page/rules"
+  },
+  "road": {
+    "file": "public/images/demo/astana-road.jpg",
+    "sourceName": "ИА «NewTimes.kz» · фото редакции",
+    "sourceUrl": "https://newtimes.kz/eksklyuziv/191739-zabluditsia-v-astane-skrytyi-gorodok-v-stremitelno-rastushchem-megapolise",
+    "year": 2024,
+    "publishedAt": "2024-07-24",
+    "imageUrl": "https://newtimes.kz/storage/userfiles/23001/%D0%B0%D0%B3%D1%80%D0%BE%D0%B3%D0%BE%D1%80%D0%BE%D0%B4%D0%BE%D0%BA%206.jpg",
+    "rights": "Фото ИА «NewTimes.kz», все права защищены. Исходная фотография грунтовой улицы Агрогородка в Астане, без изменений. Источник требует указания авторства и активной ссылки; коммерческое использование требует письменного разрешения. Свободная лицензия не заявляется."
+  },
+  "dump": {
+    "file": "public/images/demo/astana-dump.jpg",
+    "sourceName": "Informburo.kz · фото редакции",
+    "sourceUrl": "https://informburo.kz/fotoreportazh/musoryat-stroikompanii-a-ubirayut-akimaty-kak-astana-prevratilas-v-stolicu-stixiinyx-svalok",
+    "year": 2023,
+    "publishedAt": "2023-07-20",
+    "imageUrl": "https://informburo.kz/storage/photos/181/64b8ce9ae6099.jpg",
+    "rights": "Фото Informburo.kz, не свободная лицензия. Сохранены исходный файл и водяной знак. Правила источника требуют видимого водяного знака и активной ссылки; коммерческое использование требует разрешения. https://informburo.kz/page/rules"
+  }
+}

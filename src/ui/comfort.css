@@ -1,4 +1,15 @@
 :root { --green: #154d36; font-size: 16px; font-weight: 600; color: #20362b; }
+.avatar-picture { width: 36px; height: 36px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.avatar-picture.large { width: 58px; height: 58px; }
+.avatar-picker { border: 0; padding: 0; margin: 0 0 25px; min-width: 0; }
+.avatar-picker legend { font-size: 16px; margin-bottom: 15px; font-weight: 700; }
+.avatar-options { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+.account-simple .avatar-option { position: relative; display: flex; flex-direction: column; align-items: center; gap: 9px; border: 2px solid transparent; background: #f5f7f3; border-radius: 12px; padding: 13px 8px; cursor: pointer; font-size: 14px; margin: 0; }
+.account-simple .avatar-option.selected { border-color: #154d36; background: #edf3ee; }
+.avatar-option:focus-within { outline: 3px solid #7ca18c; outline-offset: 3px; }
+.account-simple .avatar-option input { position: absolute; width: 1px; height: 1px; margin: 0; padding: 0; opacity: 0; }
+.avatar-check { position: absolute; top: 8px; right: 8px; color: #154d36; }
+.avatar-picker:disabled { opacity: .6; }
 .primary { background: #154d36; border-color: #154d36; color: #fff; }
 .primary:hover:not(:disabled) { background: #103d2a; }
 .brand-icon,.budget-track span,.decision-progress .done,.selected .project-check { background: #154d36; }
@@ -27,9 +38,6 @@
 .metric>div:first-child,.metric b { font-size: 15px; }
 .metric small { font-size: 13px; }
 .metric { margin-bottom: 20px; }
-.district-tabs button { font-size: 14px; }
-.district-note { display: none; }
-.district-panel { padding-bottom: 10px; }
 .header-account { position: relative; z-index: 2; min-height: 44px; flex-shrink: 0; }
 .header-account b { font-size: 14px; }
 .header-account small { display: none; }
@@ -71,7 +79,7 @@
 .feedback-body { font-size: 17px; line-height: 1.75; color: #506149; }
 .feedback-body p+p { margin-top: 12px; }
 .feedback-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 26px; }
-@media(max-width:1100px) { .city-grid { grid-template-columns: 1fr; } .map-stage { height: 350px; } .summary-grid { gap: 10px; } .summary-card { padding: 18px 14px; } .summary-value { font-size: 32px; } .summary-value>span { font-size: 14px; } .breadcrumb { font-size: 12px; } .analysis-banner { flex-wrap: wrap; } }
+@media(max-width:1100px) { .summary-grid { gap: 10px; } .summary-card { padding: 18px 14px; } .summary-value { font-size: 32px; } .summary-value>span { font-size: 14px; } .breadcrumb { font-size: 12px; } .analysis-banner { flex-wrap: wrap; } }
 @media(max-width:700px) {
   .sidebar { z-index: 30; }
   .topbar { height: 65px; }

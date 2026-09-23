@@ -12,7 +12,8 @@
     "dev:client": "vite",
     "build": "vite build",
     "start": "node server/index.js",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "check:ai": "node scripts/check-ai.mjs"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
